@@ -1,0 +1,58 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: basic-auth-app
+  namespace: ${ namespace }
+  labels:
+    app: basic-auth
+spec:
+  containers:
+    - name: basic-auth
+      image: hashicorp/http-echo
+      args:
+        # TODO template this
+        - "-text=dev-basic-auth"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: basic-auth-service
+  namespace: ${ namespace }
+spec:
+  selector:
+    app: basic-auth
+  ports:
+    - port: 5678 # Default port for image
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: basic-auth
+  namespace: ${ namespace }
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: 'true'
+    cert-manager.io/cluster-issuer: letsencrypt
+    # type of authentication
+    nginx.ingress.kubernetes.io/auth-type: basic
+    # name of the secret that contains the user/password definitions
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-creds
+    # message to display with an appropriate context why the authentication is required
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Dev Basic Auth App'
+spec:
+  tls:
+    - hosts:
+        - ${ basic_auth_test_domain }
+      secretName: ${ secret_name }
+  rules:
+    - host: ${ basic_auth_test_domain }
+      http:
+        paths:
+          - path: /
+            pathType: "Prefix"
+            backend:
+              service:
+                name: basic-auth-service
+                port:
+                  number: 5678

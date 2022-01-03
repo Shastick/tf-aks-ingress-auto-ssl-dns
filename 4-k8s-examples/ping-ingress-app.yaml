@@ -1,0 +1,51 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: ping-app
+  namespace: ${ namespace }
+  labels:
+    app: ping
+spec:
+  containers:
+    - name: ping-app
+      image: hashicorp/http-echo
+      args:
+        - "-text=ping"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: ping-service
+  namespace: ${ namespace }
+spec:
+  selector:
+    app: ping
+  ports:
+    - port: 5678
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ping
+  namespace: ${ namespace }
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: 'true'
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls:
+    - hosts:
+        - ${ ping_test_domain }
+      secretName: wildcard
+  rules:
+    - host: ${ ping_test_domain }
+      http:
+        paths:
+          - path: /
+            pathType: "Prefix"
+            backend:
+              service:
+                name: ping-service
+                port:
+                  number: 5678

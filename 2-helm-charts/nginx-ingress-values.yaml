@@ -1,0 +1,7 @@
+service:
+  # So that we can reach the ingress from the outside world
+  # (It will get a public IP)
+  type: "LoadBalancer"
+extraArgs:
+  # Seems to be required so that the correct IP is published to DNS
+  publish-service: "ingress-nginx/nginx-ingress-controller"
